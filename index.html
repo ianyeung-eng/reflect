@@ -5,73 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>雙手啟動！雙球挑戰手捉遊戲</title>
   
-  <!-- 讓 iPhone 也可以全螢幕、隱藏瀏覽器列 -->
+  <!-- PWA 必要設定 -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="mobile-web-app-capable" content="yes">
   
-  <!-- PWA 必要：manifest.json -->
-  <link rel="manifest" href="manifest.json">
-  
-  <!-- iOS 桌面圖示（192x192） -->
-  <link rel="apple-touch-icon" href="icon-192.png">
-  
-  <!-- 各種尺寸圖示（給 Android & iOS） -->
-  <link rel="icon" sizes="192x192" href="icon-192.png">
-  <link rel="icon" sizes="512x512" href="icon-512.png">
+  <!-- 圖示（用你自己的 icon-192.png 和 icon-512.png） -->
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="icon" sizes="192x192" href="/icon-192.png">
+  <link rel="icon" sizes="512x512" href="/icon-512.png">
 
   <style>
     body { margin:0; background:#000; overflow:hidden; font-family:Arial, sans-serif; }
     #container { position: relative; width: 100vw; height: 100vh; }
     #video, #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
     #canvas { pointer-events: none; }
-
-    #flipBtn {
-      position: absolute;
-      top: 20px; left: 20px;
-      padding: 12px 20px;
-      background: #00ff88;
-      color: #000;
-      border: none;
-      border-radius: 50px;
-      font-size: 16px;
-      font-weight: bold;
-      z-index: 100;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
+    #flipBtn { position: absolute; top: 20px; left: 20px; padding: 12px 20px; background: #00ff88; color: #000; border: none; border-radius: 50px; font-size: 16px; font-weight: bold; z-index: 100; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     #flipBtn:hover { background: #00ffaa; }
-
-    #ui {
-      position: absolute;
-      top: 20px; right: 20px;
-      color: white;
-      font-size: 36px;
-      font-weight: bold;
-      background: rgba(0,0,0,0.6);
-      padding: 12px 30px;
-      border-radius: 20px;
-      z-index: 50;
-      backdrop-filter: blur(8px);
-    }
-
-    #readyText {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 32px;
-      text-align: center;
-      background: rgba(0,0,0,0.7);
-      padding: 20px 40px;
-      border-radius: 20px;
-      z-index: 90;
-      pointer-events: none;
-    }
+    #ui { position: absolute; top: 20px; right: 20px; color: white; font-size: 36px; font-weight: bold; background: rgba(0,0,0,0.6); padding: 12px 30px; border-radius: 20px; z-index: 50; backdrop-filter: blur(8px); }
+    #readyText { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 32px; text-align: center; background: rgba(0,0,0,0.7); padding: 20px 40px; border-radius: 20px; z-index: 90; pointer-events: none; }
   </style>
 </head>
 <body>
-
 <div id="container">
   <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas"></canvas>
@@ -80,13 +36,11 @@
   <div id="readyText">請用<br><b>任意兩手同時觸碰兩個紅球</b><br>即可啟動遊戲！</div>
 </div>
 
-<!-- MediaPipe -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
 <script>
-  // 你的原始遊戲程式碼完全不變（我只補了 PWA 必要功能）
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
@@ -124,9 +78,7 @@
   pose.onResults(onResults);
 
   const camera = new Camera(video, {
-    onFrame: async () => {
-      await pose.send({image: video});
-    },
+    onFrame: async () => await pose.send({image: video}),
     width: 1280,
     height: 720
   });
@@ -138,9 +90,7 @@
     flipBtn.style.background = isMirrored ? '#00ff88' : 'rgba(255,255,255,0.9)';
   });
 
-  function getDisplayX(rawX) {
-    return isMirrored ? canvasWidth - rawX : rawX;
-  }
+  function getDisplayX(rawX) { return isMirrored ? canvasWidth - rawX : rawX; }
 
   function checkHandTouch(landmarks, ballX, ballY) {
     const fingers = [15,17,19,16,18,20];
@@ -149,16 +99,9 @@
       if (!p || p.visibility < 0.3) continue;
       const px = getDisplayX(p.x * canvasWidth);
       const py = p.y * canvasHeight;
-      if (Math.hypot(px - ballX, py - ballY) < 120) {
-        return true;
-      }
+      if (Math.hypot(px - ballX, py - ballY) < 120) return true;
     }
     return false;
-  }
-
-  function checkSingleTouch(landmarks) {
-    if (targets.length !== 1) return false;
-    return checkHandTouch(landmarks, targets[0].displayX, targets[0].y);
   }
 
   function spawnTargets() {
@@ -181,7 +124,6 @@
   function onResults(results) {
     ctx.save();
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-
     if (isMirrored) {
       ctx.scale(-1, 1);
       ctx.drawImage(results.image, -canvasWidth, 0, canvasWidth, canvasHeight);
@@ -232,10 +174,8 @@
           targets[0].touched = t1;
           targets[1].touched = t2;
           if (t1 && t2) { score += 2; scored = true; }
-        } else if (checkSingleTouch(lm)) {
-          targets[0].touched = true;
-          score += 1;
-          scored = true;
+        } else if (targets.length === 1 && checkHandTouch(lm, targets[0].displayX, targets[0].y)) {
+          score += 1; scored = true;
         }
 
         if (scored) {
@@ -254,10 +194,9 @@
 
         targets.forEach((ball, i) => {
           if (!ball.active) return;
-          const isYellow = isDoubleMode;
-          const main = isYellow ? (ball.touched ? '#ffff99' : '#ffff00') : '#00ff00';
-          const glow = isYellow ? (ball.touched ? '#ffff00' : '#ffd700') : '#00ff00';
-          const border = isYellow ? '#ffaa00' : '#00ff88';
+          const main = isDoubleMode ? (ball.touched ? '#ffff99' : '#ffff00') : '#00ff00';
+          const glow = isDoubleMode ? (ball.touched ? '#ffff00' : '#ffd700') : '#00ff00';
+          const border = isDoubleMode ? '#ffaa00' : '#00ff88';
 
           ctx.fillStyle = main;
           ctx.shadowBlur = 60;
@@ -277,7 +216,7 @@
           ctx.lineWidth = 4;
           ctx.stroke();
 
-          if (isYellow) {
+          if (isDoubleMode) {
             ctx.fillStyle = '#ff0000';
             ctx.font = 'bold 28px Arial';
             ctx.textAlign = 'center';
@@ -304,6 +243,5 @@
     if (gameStarted) spawnTargets();
   });
 </script>
-
 </body>
 </html>
